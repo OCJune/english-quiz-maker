@@ -31,8 +31,13 @@ interface GoldenFile {
   raw: string
 }
 
+/**
+ * `describe.skipIf` skips the tests but still evaluates the describe body, so
+ * this has to tolerate a missing corpus rather than relying on the outer guard.
+ */
 function loadCorpus(): GoldenFile[] {
   const files: GoldenFile[] = []
+  if (!haveCorpus) return files
   for (const dir of readdirSync(GOLDEN)) {
     const type = dir.replace(/-/g, ' ') as QuestionType
     for (const name of readdirSync(join(GOLDEN, dir))) {

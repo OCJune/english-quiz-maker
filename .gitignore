@@ -24,8 +24,12 @@ ariaenglish/
 
 # Spike: research scratch, including a 99-file corpus generated from the engine.
 spike/node_modules/
-spike/out/
 spike/.work/
+# Everything the spike produced is scratch, except the golden corpus: it is the
+# parser's regression baseline and CI needs it, or those 18 tests silently skip.
+# (A whole excluded directory cannot be re-included, so exclude its entries.)
+spike/out/*
+!spike/out/golden/
 
 # Agent/session runtime state
 .omc/

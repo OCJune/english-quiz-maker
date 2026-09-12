@@ -54,14 +54,14 @@ jobs:
         run: npx electron out/main/index.js --self-test --report selftest.txt
       - name: Show self-test report
         if: always()
-        run: cat selftest.txt
+        run: test -f selftest.txt && cat selftest.txt || echo "(self-test did not run)"
         shell: bash
 
       - name: Bundled fonts
         run: npx electron out/main/index.js --font-check --report fontcheck.txt
       - name: Show font report
         if: always()
-        run: cat fontcheck.txt
+        run: test -f fontcheck.txt && cat fontcheck.txt || echo "(font check did not run)"
         shell: bash
 
       - name: Package
