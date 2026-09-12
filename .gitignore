@@ -1,0 +1,31 @@
+# Dependencies and build output
+node_modules/
+app/out/
+app/release/
+app/.ariaforge/
+*.tsbuildinfo
+
+# --- NOT for the repository -------------------------------------------------
+# Teaching materials: school exam papers and textbook passages (미래엔 / 비상 /
+# 올림포스). Copyrighted source text and the user's own work product — these must
+# not be published, including to a private repo that may later be shared.
+2026-1*/
+2026-2*/
+*.hwp
+*.hwpx
+샘플_*
+
+# Raw vendor download folder (engine zip, KSAT.exe, manual). Not needed to build.
+ariaenglish/
+
+# NOTE: app/resources/engine/ariaenglish_offline_4.html IS committed — CI cannot
+# build the app without it. It is a third-party work (Engine Design by Dani Sohn)
+# bundled with the author's permission. Keep this repository PRIVATE.
+
+# Spike: research scratch, including a 99-file corpus generated from the engine.
+spike/node_modules/
+spike/out/
+spike/.work/
+
+# Agent/session runtime state
+.omc/

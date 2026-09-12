@@ -1,0 +1,54 @@
+appId: com.ariaforge.app
+productName: AriaForge
+copyright: Copyright © 2026
+
+directories:
+  output: release
+  buildResources: build
+
+# Only the built bundles ship. Sources, tests and dev config stay out.
+files:
+  - out/**
+  - package.json
+
+# Resolved at runtime by src/main/resources.ts via process.resourcesPath.
+#   engine/  the generation engine (bundled with the author's permission)
+#   fonts/   Pretendard + Noto Sans, so every machine prints the same
+#   fixtures/ passage used by --self-test
+extraResources:
+  - from: resources
+    to: .
+    filter:
+      - '**/*'
+
+asar: true
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  # nsis and portable both emit .exe, so they need distinct names.
+  artifactName: ${productName}-${version}-win-${arch}-setup.${ext}
+
+portable:
+  artifactName: ${productName}-${version}-win-${arch}-portable.${ext}
+
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+  category: public.app-category.education
+  artifactName: ${productName}-${version}-mac-${arch}.${ext}
+  # No Apple Developer certificate: ship unsigned and tell recipients how to open
+  # it (see README). Signing can be added later without changing anything else.
+  identity: null
+
+dmg:
+  writeUpdateInfo: false
