@@ -7,8 +7,8 @@ import { BrowserWindow } from 'electron'
 import { writeFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
 
-import { buildFitScript, renderPrintHtml, type FitReport } from '@shared/print/layout'
-import { PRINT_GEOMETRY, type QuestionDocument } from '@shared/types'
+import { buildFitScript, pageSizePx, renderPrintHtml, type FitReport } from '@shared/print/layout'
+import type { QuestionDocument } from '@shared/types'
 
 export interface ExportResult {
   filePath: string
@@ -26,8 +26,10 @@ export class PdfExporter {
     const html = renderPrintHtml(doc)
     const win = new BrowserWindow({
       show: false,
-      width: Math.ceil(PRINT_GEOMETRY.pageWidthPt),
-      height: Math.ceil(PRINT_GEOMETRY.pageHeightPt),
+      // Window sizes are px; the page is laid out in pt. Match the page so the
+      // viewport never clips it (printToPDF itself follows @page either way).
+      width: Math.ceil(pageSizePx().width),
+      height: Math.ceil(pageSizePx().height),
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,

@@ -9,6 +9,7 @@ import {
   PRINT_GEOMETRY,
   fitDocument,
   fitOptionsFor,
+  pageSizePx,
   renderPrintHtml,
   type FitDocument,
   type FitReport,
@@ -16,6 +17,15 @@ import {
 import type { QuestionDocument } from '@shared/types'
 
 const ZOOM_STEPS = [0.5, 0.65, 0.8, 1, 1.25, 1.5] as const
+
+/** The print CSS is in pt; on-screen boxes are px. See pageSizePx. */
+const PAGE = pageSizePx()
+
+/** Horizontal padding of the scroll area (Tailwind p-4 on both sides). */
+const SCROLL_PADDING_PX = 32
+
+/** 'fit' follows the pane width; a number is a fixed zoom the user picked. */
+type ZoomMode = 'fit' | number
 
 interface Props {
   doc: QuestionDocument
@@ -27,7 +37,9 @@ interface Props {
 export default function PreviewPane({ doc, focusPage, onFit }: Props): React.JSX.Element {
   const frameRef = useRef<HTMLIFrameElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const [zoom, setZoom] = useState(0.65)
+  const [zoomMode, setZoomMode] = useState<ZoomMode>('fit')
+  const [fitZoom, setFitZoom] = useState(0.65)
+  const zoom = zoomMode === 'fit' ? fitZoom : zoomMode
   const [pages, setPages] = useState(0)
   const [fit, setFit] = useState<FitReport | null>(null)
 
@@ -40,6 +52,9 @@ export default function PreviewPane({ doc, focusPage, onFit }: Props): React.JSX
     if (!frameDoc) return
     // The only cast in the preview path: a real Document satisfies FitDocument
     // structurally, but TS cannot see that across the two lib sets.
+    // The pane scrolls, not the frame. An inner scrollbar would steal 15px of
+    // width and clip the page again.
+    frameDoc.documentElement.style.overflow = 'hidden'
     const report = fitDocument(frameDoc as unknown as FitDocument, fitOptionsFor())
     setFit(report)
     setPages(frameDoc.querySelectorAll('.page').length)
@@ -65,21 +80,42 @@ export default function PreviewPane({ doc, focusPage, onFit }: Props): React.JSX
     }
   }, [html, runFit])
 
+  // Fit mode: scale the page to the pane's width, and keep it fitted on resize.
+  useEffect(() => {
+    const container = scrollRef.current
+    if (!container) return
+    const update = (): void => {
+      const available = container.clientWidth - SCROLL_PADDING_PX
+      setFitZoom(Math.min(2, Math.max(0.3, available / PAGE.width)))
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [])
+
   // Scroll the selected question's page into view.
   useEffect(() => {
     const container = scrollRef.current
     if (!container || !focusPage) return
-    container.scrollTo({ top: (focusPage - 1) * PRINT_GEOMETRY.pageHeightPt * zoom, behavior: 'smooth' })
+    container.scrollTo({ top: (focusPage - 1) * PAGE.height * zoom, behavior: 'smooth' })
   }, [focusPage, zoom])
 
-  const zoomIndex = ZOOM_STEPS.indexOf(zoom as (typeof ZOOM_STEPS)[number])
+  // Step from wherever the zoom is now, including a fitted value between steps.
   const step = (delta: number): void => {
-    const next = ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, Math.max(0, zoomIndex + delta))]
-    if (next) setZoom(next)
+    const next =
+      delta > 0
+        ? ZOOM_STEPS.find((z) => z > zoom + 1e-6)
+        : [...ZOOM_STEPS].reverse().find((z) => z < zoom - 1e-6)
+    if (next) setZoomMode(next)
   }
+  const MIN_STEP = ZOOM_STEPS[0]
+  const MAX_STEP = ZOOM_STEPS.at(-1) ?? MIN_STEP
+  const canZoomOut = zoom > MIN_STEP + 1e-6
+  const canZoomIn = zoom < MAX_STEP - 1e-6
 
-  const frameWidth = PRINT_GEOMETRY.pageWidthPt
-  const frameHeight = Math.max(1, pages) * PRINT_GEOMETRY.pageHeightPt
+  const frameWidth = PAGE.width
+  const frameHeight = Math.max(1, pages) * PAGE.height
   const issues = fit ? fit.overflowing.length + (fit.answersTruncated ? 1 : 0) : 0
 
   return (
@@ -93,8 +129,17 @@ export default function PreviewPane({ doc, focusPage, onFit }: Props): React.JSX
         <div className="ml-auto flex items-center gap-1">
           <button
             type="button"
+            onClick={() => setZoomMode('fit')}
+            disabled={zoomMode === 'fit'}
+            title="창 폭에 맞춤"
+            className="mr-1 rounded border border-stone-300 px-2 py-0.5 disabled:bg-stone-900 disabled:text-white"
+          >
+            맞춤
+          </button>
+          <button
+            type="button"
             onClick={() => step(-1)}
-            disabled={zoomIndex <= 0}
+            disabled={!canZoomOut}
             className="rounded border border-stone-300 px-2 py-0.5 disabled:opacity-40"
           >
             −
@@ -103,7 +148,7 @@ export default function PreviewPane({ doc, focusPage, onFit }: Props): React.JSX
           <button
             type="button"
             onClick={() => step(1)}
-            disabled={zoomIndex >= ZOOM_STEPS.length - 1}
+            disabled={!canZoomIn}
             className="rounded border border-stone-300 px-2 py-0.5 disabled:opacity-40"
           >
             +
@@ -133,7 +178,13 @@ export default function PreviewPane({ doc, focusPage, onFit }: Props): React.JSX
         </div>
       ) : null}
 
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto bg-stone-200 p-4">
+      <div
+        ref={scrollRef}
+        className="min-h-0 flex-1 overflow-auto bg-stone-200 p-4"
+        // Reserve the scrollbar's width up front, so fit mode does not oscillate
+        // as the vertical scrollbar appears and disappears.
+        style={{ scrollbarGutter: 'stable' }}
+      >
         {/* The iframe renders at true A4 size and is scaled; the wrapper reserves
             the scaled footprint so the scroll area is correct. */}
         <div

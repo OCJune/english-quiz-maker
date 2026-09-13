@@ -413,3 +413,17 @@ export function fitOptionsFor(geometry: PrintGeometry = PRINT_GEOMETRY): FitOpti
 export function buildFitScript(geometry: PrintGeometry = PRINT_GEOMETRY): string {
   return `(${fitDocument.toString()})(document, ${JSON.stringify(fitOptionsFor(geometry))})`
 }
+
+// ---------------------------------------------------------------------------
+// Screen sizing
+//
+// The print CSS sizes pages in pt. Anything that sizes a box on screen from
+// inline styles works in px, so it must convert: feeding the pt number straight
+// into a px style made the preview frame 595px wide for a 794px page and cut off
+// the right column.
+// ---------------------------------------------------------------------------
+
+/** One printed page, in CSS px. */
+export function pageSizePx(geometry: PrintGeometry = PRINT_GEOMETRY): { width: number; height: number } {
+  return { width: ptToPx(geometry.pageWidthPt), height: ptToPx(geometry.pageHeightPt) }
+}

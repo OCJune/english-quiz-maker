@@ -10,6 +10,7 @@ import {
   answerEntryLines,
   fitOptionsFor,
   buildFitScript,
+  pageSizePx,
   paginate,
   renderPrintHtml,
   type QuestionPage,
@@ -94,6 +95,23 @@ describe('typography', () => {
 
   it('leaves room to shrink a question before it overflows', () => {
     expect(PRINT_GEOMETRY.minBodyFontPx).toBeLessThan(PRINT_GEOMETRY.bodyFontPx)
+  })
+})
+
+describe('pageSizePx — on-screen sizing', () => {
+  it('converts the pt page to px, so a preview frame is not a quarter too small', () => {
+    const { width, height } = pageSizePx()
+    // Regression: the preview once used the pt numbers as px (595 x 842), which
+    // made the frame 180px too narrow and cut off the right column.
+    expect(width).toBeCloseTo((PRINT_GEOMETRY.pageWidthPt * 96) / 72, 6)
+    expect(height).toBeCloseTo((PRINT_GEOMETRY.pageHeightPt * 96) / 72, 6)
+    expect(width).toBeGreaterThan(790)
+    expect(width).not.toBeCloseTo(PRINT_GEOMETRY.pageWidthPt, 0)
+  })
+
+  it('is wide enough to contain the right column', () => {
+    const rightColumnEndPx = ((PRINT_GEOMETRY.rightColumnXPt + PRINT_GEOMETRY.columnWidthPt) * 96) / 72
+    expect(pageSizePx().width).toBeGreaterThanOrEqual(rightColumnEndPx)
   })
 })
 
